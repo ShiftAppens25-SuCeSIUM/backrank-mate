@@ -286,3 +286,74 @@ def tiktok(url: str) -> str:
         return summarize_tiktok(id)
     finally:
         delete_tiktok(id)
+
+def download_youtube_short(url: str, id: str):
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/youtube_shorts"
+    directory = f"{base_dir}/{id}"
+    os.makedirs(directory, exist_ok=True)
+    
+    ydl_opts = {
+        'outtmpl': f'{directory}/{id}.%(ext)s',
+        'format': 'best/video',
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
+def summarize_youtube_short(id: str) -> str:
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/youtube_shorts"
+    directory = f"{base_dir}/{id}"
+    
+    files = [
+        os.path.join(directory, f) for f in os.listdir(directory)
+        if os.path.isfile(os.path.join(directory, f))
+    ]
+
+    filtered_files = [
+        f for f in files
+        if Path(f).suffix in allowed_gemini_extensions
+    ]
+    
+    client = genai.Client(api_key=os.getenv("API_KEY"))
+    
+    uploaded_files = [client.files.upload(file=f) for f in filtered_files]
+    content = uploaded_files + [
+        """
+        Summarize this YouTube Short.
+        Use this text schema.
+
+        Return, in plain text, the main statements or insinuations the video makes.
+        """
+    ]
+
+    # Wait for files to be uploaded
+    for f in uploaded_files:
+        gemini_wait_until_active(client, f.name)
+
+    response = client.models.generate_content(
+        model="gemini-2.0-flash", contents=content
+    )
+
+    return response.text
+
+def delete_youtube_short(id: str):
+    output_directory = f"{os.getenv('TEMPORARY_DIRECTORY')}/youtube_shorts/{id}"
+    if os.path.exists(output_directory):
+        shutil.rmtree(output_directory)
+
+def youtube_short_get_shortcode(url: str) -> str:
+    pattern = r"youtube\.com/shorts/([^/?]+)"
+    match = re.search(pattern, url)
+    if match:
+        return match.group(1)
+    else:
+        raise ValueError("Invalid YouTube Shorts URL format. Please provide a valid URL.")
+
+def youtube_short(url: str) -> str:
+    id = youtube_short_get_shortcode(url)
+    try:
+        download_youtube_short(url, id)
+        return summarize_youtube_short(id)
+    finally:
+        delete_youtube_short(id)
+        
