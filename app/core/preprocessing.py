@@ -1,5 +1,7 @@
+import asyncio
 import os
 from typing import List
+from TikTokApi import TikTokApi
 import instaloader
 import os
 from pathlib import Path
@@ -13,6 +15,7 @@ import requests
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
+import re
 
 allowed_gemini_extensions = [".png", ".jpg", ".txt", ".mp4"]
 api_key=os.getenv("API_KEY")
@@ -93,7 +96,6 @@ def insta_post(shortcode: str) -> str:
         delete_insta_post(shortcode)
 
 
-
 reddit = praw.Reddit(
     client_id=os.getenv("REDDIT_CLIENT_ID"),
     client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
@@ -148,6 +150,24 @@ def summarize_reddit_post(shortcode: str,data : dict) -> str:
     
     uploaded_files = [client.files.upload(file=f) for f in filtered_files]
     content = uploaded_files + [f"Summarize this reddit post with the following data: title: {data['title']}, text: {data['text']}"]
+def summarize_tiktok(url: str) -> str:
+    output_filename = f"{os.getenv("TEMPORARY_DIRECTORY")}/tiktok/{extract_tiktok_video_id(url)}"
+
+    client = genai.Client(api_key=api_key)
+
+    files = [ 
+        os.path(output_filename)
+    ]
+    
+    uploaded_files = [client.files.upload(file=f) for f in files]
+    content = files + [
+        """
+        Summarize this tiktok.
+        Use this text schema.
+
+        Return, in plain text, the main statements or insinuations the video makes.
+        """
+    ]
 
     # Wait for files to be uploaded
     for f in uploaded_files:
@@ -172,3 +192,27 @@ def reddit_post(shortcode: str) -> dict:
             return summarize_reddit_post(shortcode,data)
     finally:
         delete_reddit_post(shortcode)
+def delete_tiktok(id: str):
+    output_filename = f"{os.getenv("TEMPORARY_DIRECTORY")}/tiktok/{(id)}"
+    if os.path.exists(output_filename):
+        os.remove(output_filename)
+
+
+async def download_tiktok(id: str):
+    async with TikTokApi() as api:
+        base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/tiktok"
+        os.makedirs(base_dir, exist_ok=True)
+        output_filename = f"{base_dir}/{id}"
+        video = await api.video(url=f"url")
+        video_data = await video.bytes()
+
+        with open(output_filename, "wb") as f:
+            f.write(video_data)
+
+
+def tiktok(id: str) -> str:
+    try:
+        asyncio.run(download_tiktok(id))
+        return summarize_tiktok(id)
+    finally:
+        delete_tiktok(id)

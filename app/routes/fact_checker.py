@@ -39,6 +39,11 @@ def check_insta_post(payload: InInstaPost):
     content = pp.insta_post(payload.shortcode)
     return fact_check(content)
 
+@router.post("/fact_check/tiktok", response_model=OutFactChecking)
+def check_insta_post(payload: InInstaPost):
+    content = pp.tiktok(payload.shortcode)
+    return fact_check(content)
+
 @router.post("/fact_check/text", response_model=OutFactChecking)
 def check_text(payload: InText):
     return fact_check(payload.query)

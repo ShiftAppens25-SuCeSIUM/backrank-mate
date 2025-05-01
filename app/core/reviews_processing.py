@@ -31,12 +31,12 @@ and the reviews: [{','.join([str(review_to_tuple(i)) for i in reviews])}]. If th
 where each review is a tuple of (rating, reviewDate, publisher_name, publisher_site, information_url),
 determine the following:
 1. The overall truth of the query (e.g., "true", "false", "misleading", "innacuracy").
-2. The sources that agree with the query and their information.
-3. The sources that disagree with the query and their information.
+2. The sources that agree with the query and their information, sorted by most recent.
+3. The sources that disagree with the query and their information, sorted by most recent.
 4. The certainty of the overall truth (0-1 scale).
 
 
-Use this JSON schema:
+Your answer must be a valid JSON string (no extra text), following this schema.
 Publisher = {{'name': str, 'site': str}}
 Source = {{'publisher': Publisher, 'information_url': str, 'review': str}}
 Return: {{"status": str, "agree_sources": List[Source], "disagree_sources": List[Source], "certainty": float}}
