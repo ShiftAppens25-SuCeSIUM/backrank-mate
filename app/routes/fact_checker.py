@@ -1,9 +1,10 @@
 from enum import Enum
-from typing import List, Optional
+from typing import Callable, List, Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
 import app.core.preprocessing as pp
 from app.core.core import fact_check
+import re
 
 router = APIRouter()
 
@@ -25,9 +26,6 @@ class OutSource(BaseModel):
 class InText(BaseModel):
     query: str
 
-class InInstaPost(BaseModel):
-    shortcode: str
-
 class OutFactChecking(BaseModel):
     status: str
     agree_sources: List[OutSource]
@@ -35,15 +33,28 @@ class OutFactChecking(BaseModel):
     certainty: float
     query: str
 
-@router.post("/fact_check/insta_post", response_model=OutFactChecking)
-def check_insta_post(payload: InInstaPost):
-    content = pp.insta_post(payload.shortcode)
-    return fact_check(content)
+def get_social_media(url: str) -> Optional[Callable[[str], OutFactChecking]]:
+    social_media = [
+        {"function": pp.youtube_short, "regex": r"youtube\.com/shorts/[^/?]+"},
+        {"function": pp.insta_post, "regex": r"instagram\.com/p/[^/?]+"},
+        {"function": pp.tiktok, "regex": r"tiktok\.com/@[^/]+/video/([^/?]+)"},
+        {"function": pp.tiktok, "regex": r"vm\.tiktok\.com/([^/?]+)"},
+        {"function": pp.reddit, "regex": r"reddit\.com/r/[^/]+/comments/([^/?]+)"},
+    ]
 
-@router.post("/fact_check/tiktok", response_model=OutFactChecking)
-def check_insta_post(payload: InInstaPost):
-    content = pp.tiktok(payload.shortcode)
-    return fact_check(content)
+    for sm in social_media:
+        if re.search(sm["regex"], url) is not None:
+            return sm["function"]
+
+@router.post("/fact_check/link", response_model=OutFactChecking)
+def check_link(payload: InText):
+    url = payload.query
+    fn = get_social_media(url)
+
+    if fn is None:
+        pass # TODO: Feed directly to Gemini
+
+    return fact_check(fn(url))
 
 @router.post("/fact_check/text", response_model=OutFactChecking)
 def check_text(payload: InText):

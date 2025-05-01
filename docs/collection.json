@@ -28,7 +28,7 @@
 			"response": []
 		},
 		{
-			"name": "Insta post",
+			"name": "Link",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -39,10 +39,10 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"query\": \"The earth is round\"\n}"
+					"raw": "{\n  \"shortcode\": \"DItmpGKp6Go\"\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8000/fact_check/text",
+					"raw": "http://localhost:8000/fact_check/insta_post",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -50,7 +50,7 @@
 					"port": "8000",
 					"path": [
 						"fact_check",
-						"text"
+						"insta_post"
 					]
 				}
 			},
@@ -68,7 +68,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"query\": \"The earth is round\"\n}"
+					"raw": "{\n  \"query\": \"Senna died in 1994\"\n}"
 				},
 				"url": {
 					"raw": "http://localhost:8000/fact_check/text",
