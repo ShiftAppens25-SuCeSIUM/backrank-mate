@@ -1,7 +1,6 @@
 import asyncio
 import os
 from typing import List
-from TikTokApi import TikTokApi
 import instaloader
 import os
 from pathlib import Path
@@ -11,6 +10,7 @@ import time
 import tweepy
 import praw
 import requests
+import yt_dlp
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
@@ -19,9 +19,10 @@ import re
 
 allowed_gemini_extensions = [".png", ".jpg", ".txt", ".mp4"]
 api_key=os.getenv("API_KEY")
+ms_token = os.getenv("MS_TOKEN",None)
 
 def download_insta_post(shortcode: str):
-    base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/insta"
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/insta"
     directory = f"{base_dir}/{shortcode}"
     os.makedirs(directory, exist_ok=True)
 
@@ -39,12 +40,8 @@ def gemini_wait_until_active(client, name, timeout=60):
         time.sleep(1)
     raise TimeoutError(f"File {name} did not become ACTIVE in time.")
 
-
-
-
-
 def summarize_insta_post(shortcode: str) -> str:
-    base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/insta"
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/insta"
     directory = f"{base_dir}/{shortcode}"
 
     client = genai.Client(api_key=api_key)
@@ -83,12 +80,21 @@ def summarize_insta_post(shortcode: str) -> str:
 
 
 def delete_insta_post(shortcode: str):
-    base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/insta"
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/insta"
     directory = f"{base_dir}/{shortcode}"
     shutil.rmtree(directory)
 
-def insta_post(shortcode: str) -> str:
+def instagram_get_shortcode(url: str) -> str:
+    pattern = r"instagram\.com/p/([^/?]+)"
+    match = re.search(pattern, url)
+    if match:
+        return match.group(1)
+    else:
+        raise ValueError("Invalid Instagram URL format. Please provide a valid post URL.")
+
+def insta_post(url: str) -> str:
     try:
+        shortcode = instagram_get_shortcode(url)
         download_insta_post(shortcode)
         summary = summarize_insta_post(shortcode)
         return summary
@@ -120,7 +126,7 @@ def get_reddit_post_data(post_id: str) -> dict:
 
 
 def download_media_reddit(shortcode : str,media: List[str]):
-    base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/reddit"
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/reddit"
     directory = f"{base_dir}/{shortcode}"
     os.makedirs(directory, exist_ok=True)
     for i, url in enumerate(media):
@@ -134,7 +140,7 @@ def download_media_reddit(shortcode : str,media: List[str]):
             
 
 def summarize_reddit_post(shortcode: str,data : dict) -> str:
-    base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/reddit"
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/reddit"
     directory = f"{base_dir}/{shortcode}"
     
     files = [ 
@@ -150,17 +156,76 @@ def summarize_reddit_post(shortcode: str,data : dict) -> str:
     
     uploaded_files = [client.files.upload(file=f) for f in filtered_files]
     content = uploaded_files + [f"Summarize this reddit post with the following data: title: {data['title']}, text: {data['text']}"]
-def summarize_tiktok(url: str) -> str:
-    output_filename = f"{os.getenv("TEMPORARY_DIRECTORY")}/tiktok/{extract_tiktok_video_id(url)}"
+    
+    # Wait for files to be uploaded
+    for f in uploaded_files:
+        gemini_wait_until_active(client, f.name)
 
-    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(
+        model="gemini-2.0-flash", contents=content
+    )
 
+    return response.text
+
+
+def delete_reddit_post(shortcode: str):
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/reddit"
+    directory = f"{base_dir}/{shortcode}"
+    shutil.rmtree(directory)
+
+
+def reddit_get_shortcode(url: str) -> str:
+    pattern = r"reddit\.com/r/[^/]+/comments/([^/?]+)"
+    match = re.search(pattern, url)
+    if match:
+        return match.group(1)
+    else:
+        raise ValueError("Invalid Reddit URL format. Please provide a valid post URL.")
+
+def reddit_post(url: str) -> dict:
+    shortcode = reddit_get_shortcode(url)
+    try:
+        data = get_reddit_post_data(shortcode)
+        if "media" in data:
+            download_media_reddit(shortcode, data["media"])
+            return summarize_reddit_post(shortcode,data)
+    finally:
+        delete_reddit_post(shortcode)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+def delete_tiktok(id: str):
+    output_directory = f"{os.getenv('TEMPORARY_DIRECTORY')}/tiktok/{id}"
+    if os.path.exists(output_directory):
+        shutil.rmtree(output_directory)
+
+def summarize_tiktok(id: str) -> str:
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/tiktok"
+    directory = f"{base_dir}/{id}"
+    
     files = [ 
-        os.path(output_filename)
+        os.path.join(directory, f) for f in os.listdir(directory) 
+        if os.path.isfile(os.path.join(directory, f))
+    ]
+
+    filtered_files = [
+        f for f in files
+        if Path(f).suffix in allowed_gemini_extensions
     ]
     
-    uploaded_files = [client.files.upload(file=f) for f in files]
-    content = files + [
+    client = genai.Client(api_key=os.getenv("API_KEY"))
+    
+    uploaded_files = [client.files.upload(file=f) for f in filtered_files]
+    content = uploaded_files + [
         """
         Summarize this tiktok.
         Use this text schema.
@@ -179,40 +244,45 @@ def summarize_tiktok(url: str) -> str:
 
     return response.text
 
-def delete_reddit_post(shortcode: str):
-    base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/reddit"
-    directory = f"{base_dir}/{shortcode}"
-    shutil.rmtree(directory)
+def download_tiktok(url: str, id: str):
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/tiktok"
+    directory = f"{base_dir}/{id}"
+    os.makedirs(directory, exist_ok=True)
+    
+    ydl_opts = {
+        'outtmpl': f'{directory}/{id}.%(ext)s',
+        'format': 'best/video',
+    }
 
-def reddit_post(shortcode: str) -> dict:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+    
+
+ms_token = os.getenv("MS_TOKEN",None)
+
+def tiktok_get_shortcode(url: str) -> str:
+    if "www.tiktok.com" in url:
+        pattern = r"tiktok\.com/@[^/]+/video/([^/?]+)"
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+        else:
+            raise ValueError("Invalid TikTok URL format. Please provide a valid post URL.")
+    elif "vm.tiktok.com" in url:
+        pattern = r"vm\.tiktok\.com/([^/?]+)"
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+        else:
+            raise ValueError("Invalid TikTok URL format. Please provide a valid post URL.")
+    else:
+        raise ValueError("Invalid TikTok URL format. Please provide a valid post URL.")
+    
+
+def tiktok(url: str) -> str:
+    id = tiktok_get_shortcode(url)
     try:
-        data = get_reddit_post_data(shortcode)
-        if "media" in data:
-            download_media_reddit(shortcode, data["media"])
-            return summarize_reddit_post(shortcode,data)
-    finally:
-        delete_reddit_post(shortcode)
-def delete_tiktok(id: str):
-    output_filename = f"{os.getenv("TEMPORARY_DIRECTORY")}/tiktok/{(id)}"
-    if os.path.exists(output_filename):
-        os.remove(output_filename)
-
-
-async def download_tiktok(id: str):
-    async with TikTokApi() as api:
-        base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/tiktok"
-        os.makedirs(base_dir, exist_ok=True)
-        output_filename = f"{base_dir}/{id}"
-        video = await api.video(url=f"url")
-        video_data = await video.bytes()
-
-        with open(output_filename, "wb") as f:
-            f.write(video_data)
-
-
-def tiktok(id: str) -> str:
-    try:
-        asyncio.run(download_tiktok(id))
+        download_tiktok(url,id)
         return summarize_tiktok(id)
     finally:
         delete_tiktok(id)
