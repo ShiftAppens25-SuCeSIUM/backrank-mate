@@ -44,7 +44,14 @@ def summarize_insta_post(shortcode: str) -> str:
     ]
     
     uploaded_files = [client.files.upload(file=f) for f in filtered_files]
-    content = uploaded_files + ["Summarize this instagram post"]
+    content = uploaded_files + [
+        """
+        Summarize this instagram post.
+        Use this text schema.
+
+        Return, in plain text, the main statements or insinuations the video makes.
+        """
+    ]
 
     # Wait for files to be uploaded
     for f in uploaded_files:
@@ -66,5 +73,6 @@ def insta_post(shortcode: str) -> str:
     try:
         download_insta_post(shortcode)
         summary = summarize_insta_post(shortcode)
+        return summary
     finally:
         delete_insta_post(shortcode)

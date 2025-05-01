@@ -32,8 +32,8 @@ class ClaimReview(BaseModel):
     
 class Claim(BaseModel):
     text: str
-    claimant: str
-    claimDate: datetime
+    claimant: str | None = None
+    claimDate: datetime | None = None
     claimReview: List[ClaimReview]
 
     class Config:
@@ -83,8 +83,6 @@ def get_claims_image(image_uri: str) -> Claim:
     }
     response = requests.get(url, params=params)
     response_json = response.json()
-    print(response.status_code)
-    print(response_json)
     claims = []
     for claim in response_json.get("claims", []):
         claims.append(Claim(**claim))
@@ -108,6 +106,7 @@ def get_reviews_text(query : str) -> List[Review]:
     reviews = []
     for claim in claims:
         reviews.extend(get_reviews_ratings(claim))
+
     return reviews
 
 

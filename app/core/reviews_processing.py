@@ -1,6 +1,7 @@
 import json
 from typing import List
 from google import genai
+from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 import os
 from .google_fact_check import Review 
 api_key = os.getenv("API_KEY")
@@ -18,10 +19,14 @@ def review_to_tuple(review: Review) -> tuple:
     )
 
 def process_reviews(query : str,reviews: List[Review]): 
+    google_search_tool = Tool(
+        google_search = GoogleSearch()
+    )
+
     prompt = f"""
 Given the query: {query}
 
-and the reviews: [{','.join([str(review_to_tuple(i)) for i in reviews])}]
+and the reviews: [{','.join([str(review_to_tuple(i)) for i in reviews])}]. If there are no reviews, search the web and find your sources, filling in the information.
 
 where each review is a tuple of (rating, reviewDate, publisher_name, publisher_site, information_url),
 determine the following:
@@ -40,6 +45,10 @@ Return: {{"status": str, "agree_sources": List[Source], "disagree_sources": List
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=prompt,
+        config=GenerateContentConfig(
+            tools=[google_search_tool],
+            response_modalities=["TEXT"],
+        )
     )
     t = response.text
     t = t.split("```json")[1]

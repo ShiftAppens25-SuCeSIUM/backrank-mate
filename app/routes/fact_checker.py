@@ -29,7 +29,7 @@ class InInstaPost(BaseModel):
     shortcode: str
 
 class OutFactChecking(BaseModel):
-    status: FactCheckStatus
+    status: str
     agree_sources: List[OutSource]
     disagree_sources: List[OutSource]
     certainty: float
@@ -37,32 +37,8 @@ class OutFactChecking(BaseModel):
 @router.post("/fact_check/insta_post", response_model=OutFactChecking)
 def check_insta_post(payload: InInstaPost):
     content = pp.insta_post(payload.shortcode)
-    return example_response()
+    return fact_check(content)
 
 @router.post("/fact_check/text", response_model=OutFactChecking)
 def check_text(payload: InText):
-    res = fact_check(payload.query)
-    print(res)
-    return res
-
-def example_response():
-    agree_source = OutSource(
-        entity="O ChatGPT",
-        link="https://chatgpt.com",
-        explanation="Skill issue"
-    )
-
-    disagree_source = OutSource(
-        entity="As vozes da minha cabeça",
-        link=None,
-        explanation="não se calam"
-    )
-
-    response = OutFactChecking(
-        status=FactCheckStatus.MISLEADING,
-        agree_sources=[agree_source],
-        disagree_sources=[disagree_source],
-        certainty=0.5
-    )
-
-    return response
+    return fact_check(payload.query)
