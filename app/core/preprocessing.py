@@ -356,4 +356,28 @@ def youtube_short(url: str) -> str:
         return summarize_youtube_short(id)
     finally:
         delete_youtube_short(id)
-        
+
+
+def summarize_random_page(text: str) -> str:
+    client = genai.Client(api_key=os.getenv("API_KEY"))
+    
+    content = [
+        text,
+        """
+        Summarize this page.
+        Use this text schema.
+
+        Return, in plain text, the main statements or insinuations the page makes.
+        """
+    ]
+
+    response = client.models.generate_content(
+        model="gemini-2.0-flash", contents=content
+    )
+
+    return response.text
+
+def random_url(url: str) -> str:
+    page = requests.get(url)
+    t = page.text
+    return summarize_random_page(t)
