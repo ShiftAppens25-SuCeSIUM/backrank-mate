@@ -42,3 +42,7 @@ uvicorn app.main:app --reload
 ```
 
 4. You can now access the API in `http://127.0.0.1:8000`.
+
+## Using the API
+
+A Postman collection describing out to use the API can be found in `docs/collection.json`.

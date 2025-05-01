@@ -1,0 +1,48 @@
+{
+    "info": {
+      "name": "FastAPI Example",
+      "_postman_id": "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
+      "description": "Postman collection for FastAPI demo project",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "GET /",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "http://localhost:8000/",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "8000",
+            "path": [""]
+          }
+        }
+      },
+      {
+        "name": "POST /hello",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"name\": \"Alice\",\n  \"age\": 25,\n  \"language\": \"english\"\n}"
+          },
+          "url": {
+            "raw": "http://localhost:8000/hello",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "8000",
+            "path": ["hello"]
+          }
+        }
+      }
+    ]
+  }
+  
