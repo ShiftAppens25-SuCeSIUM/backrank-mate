@@ -52,7 +52,7 @@ def check_link(payload: InText):
     fn = get_social_media(url)
 
     if fn is None:
-        pass # TODO: Feed directly to Gemini
+        fact_check(pp.random_url(url))
 
     return fact_check(fn(url))
 
