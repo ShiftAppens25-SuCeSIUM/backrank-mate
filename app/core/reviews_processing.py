@@ -34,12 +34,13 @@ determine the following:
 2. The sources that agree with the query and their information, sorted by most recent.
 3. The sources that disagree with the query and their information, sorted by most recent.
 4. The certainty of the overall truth (0-1 scale).
+5. The query itself.
 
 
 Your answer must be a valid JSON string (no extra text), following this schema.
 Publisher = {{'name': str, 'site': str}}
 Source = {{'publisher': Publisher, 'information_url': str, 'review': str}}
-Return: {{"status": str, "agree_sources": List[Source], "disagree_sources": List[Source], "certainty": float}}
+Return: {{"status": str, "agree_sources": List[Source], "disagree_sources": List[Source], "certainty": float, "query": str}}
 """
 
     response = client.models.generate_content(

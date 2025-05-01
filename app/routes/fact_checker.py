@@ -33,6 +33,7 @@ class OutFactChecking(BaseModel):
     agree_sources: List[OutSource]
     disagree_sources: List[OutSource]
     certainty: float
+    query: str
 
 @router.post("/fact_check/insta_post", response_model=OutFactChecking)
 def check_insta_post(payload: InInstaPost):
