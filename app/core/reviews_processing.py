@@ -41,7 +41,10 @@ Return: {{"status": str, "agree_sources": List[Source], "disagree_sources": List
         model="gemini-2.0-flash",
         contents=prompt,
     )
-
-    data = json.loads(response.text[7:-3])
+    t = response.text
+    t = t.split("```json")[1]
+    t = t.split("```")[0]
+    
+    data = json.loads(t)
     return data
 
