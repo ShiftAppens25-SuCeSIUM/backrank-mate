@@ -1,48 +1,89 @@
 {
-    "info": {
-      "name": "FastAPI Example",
-      "_postman_id": "a1b2c3d4-e5f6-7890-abcd-1234567890ab",
-      "description": "Postman collection for FastAPI demo project",
-      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-    },
-    "item": [
-      {
-        "name": "GET /",
-        "request": {
-          "method": "GET",
-          "header": [],
-          "url": {
-            "raw": "http://localhost:8000/",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "8000",
-            "path": [""]
-          }
-        }
-      },
-      {
-        "name": "POST /hello",
-        "request": {
-          "method": "POST",
-          "header": [
-            {
-              "key": "Content-Type",
-              "value": "application/json"
-            }
-          ],
-          "body": {
-            "mode": "raw",
-            "raw": "{\n  \"name\": \"Alice\",\n  \"age\": 25,\n  \"language\": \"english\"\n}"
-          },
-          "url": {
-            "raw": "http://localhost:8000/hello",
-            "protocol": "http",
-            "host": ["localhost"],
-            "port": "8000",
-            "path": ["hello"]
-          }
-        }
-      }
-    ]
-  }
-  
+	"info": {
+		"_postman_id": "fd4d9f5f-76e3-4d1e-b9cf-7c22b7bcca0a",
+		"name": "BackrankMate",
+		"description": "Postman collection for FastAPI demo project",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "32164757",
+		"_collection_link": "https://grey-meadow-590859.postman.co/workspace/My-Workspace~970f3e84-a260-4857-8a94-e980218508f0/collection/32164757-fd4d9f5f-76e3-4d1e-b9cf-7c22b7bcca0a?action=share&source=collection_link&creator=32164757"
+	},
+	"item": [
+		{
+			"name": "GET /",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Insta post",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"query\": \"The earth is round\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/fact_check/text",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"fact_check",
+						"text"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Text",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"query\": \"The earth is round\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/fact_check/text",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"fact_check",
+						"text"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
