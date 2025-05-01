@@ -15,6 +15,7 @@ if __name__ == "__main__":
     load_dotenv()
 
 allowed_gemini_extensions = [".png", ".jpg", ".txt", ".mp4"]
+api_key=os.getenv("API_KEY")
 
 def download_insta_post(shortcode: str):
     base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/insta"
@@ -43,6 +44,8 @@ def summarize_insta_post(shortcode: str) -> str:
     base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/insta"
     directory = f"{base_dir}/{shortcode}"
 
+    client = genai.Client(api_key=api_key)
+
     files = [ 
         os.path.join(directory, f) for f in os.listdir(directory) 
         if os.path.isfile(os.path.join(directory, f))
@@ -56,7 +59,14 @@ def summarize_insta_post(shortcode: str) -> str:
     client = genai.Client(api_key=os.getenv("API_KEY"))
     
     uploaded_files = [client.files.upload(file=f) for f in filtered_files]
-    content = uploaded_files + ["Summarize this instagram post"]
+    content = uploaded_files + [
+        """
+        Summarize this instagram post.
+        Use this text schema.
+
+        Return, in plain text, the main statements or insinuations the video makes.
+        """
+    ]
 
     # Wait for files to be uploaded
     for f in uploaded_files:
@@ -66,8 +76,7 @@ def summarize_insta_post(shortcode: str) -> str:
         model="gemini-2.0-flash", contents=content
     )
 
-    print(response.text)
-    return ""
+    return response.text
 
 
 def delete_insta_post(shortcode: str):
@@ -79,6 +88,7 @@ def insta_post(shortcode: str) -> str:
     try:
         download_insta_post(shortcode)
         summary = summarize_insta_post(shortcode)
+        return summary
     finally:
         delete_insta_post(shortcode)
 
