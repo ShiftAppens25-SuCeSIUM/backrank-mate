@@ -7,6 +7,7 @@ from google import genai
 import time
 
 allowed_gemini_extensions = [".png", ".jpg", ".txt", ".mp4"]
+api_key=os.getenv("API_KEY")
 
 def download_insta_post(shortcode: str):
     base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/insta"
@@ -30,7 +31,7 @@ def gemini_wait_until_active(client, name, timeout=60):
 def summarize_insta_post(shortcode: str) -> str:
     base_dir = f"{os.getenv("TEMPORARY_DIRECTORY")}/insta"
     directory = f"{base_dir}/{shortcode}"
-    client = genai.Client(api_key=os.getenv("API_KEY"))
+    client = genai.Client(api_key=api_key)
 
     files = [ 
         os.path.join(directory, f) for f in os.listdir(directory) 
@@ -53,8 +54,7 @@ def summarize_insta_post(shortcode: str) -> str:
         model="gemini-2.0-flash", contents=content
     )
 
-    print(response.text)
-    return ""
+    return response.text
 
 
 def delete_insta_post(shortcode: str):

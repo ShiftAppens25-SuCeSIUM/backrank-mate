@@ -34,7 +34,7 @@ determine the following:
 Use this JSON schema:
 Publisher = {{'name': str, 'site': str}}
 Source = {{'publisher': Publisher, 'information_url': str, 'review': str}}
-Return: {{"status": str, "agree_sources": List[Source], "disagree_sources": List[Source], "certenty": float}}
+Return: {{"status": str, "agree_sources": List[Source], "disagree_sources": List[Source], "certainty": float}}
 """
 
     response = client.models.generate_content(

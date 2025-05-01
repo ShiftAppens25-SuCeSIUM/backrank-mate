@@ -1,8 +1,9 @@
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
 import app.core.preprocessing as pp
+from app.core.core import fact_check
 
 router = APIRouter()
 
@@ -10,12 +11,16 @@ class FactCheckStatus(str, Enum):
     TRUE = "true",
     FALSE = "false",
     MISLEADING = "misleading"
+    UNKNOWN = "unknown"
+
+class OutPublisher(BaseModel):
+    name: str
+    site: str
 
 class OutSource(BaseModel):
-    entity: str
-    link: Optional[str]
-    explanation: str
-
+    publisher: OutPublisher
+    information_url: str
+    review: str
 
 class InText(BaseModel):
     query: str
@@ -25,8 +30,8 @@ class InInstaPost(BaseModel):
 
 class OutFactChecking(BaseModel):
     status: FactCheckStatus
-    agree_sources: list[OutSource]
-    disagree_sources: list[OutSource]
+    agree_sources: List[OutSource]
+    disagree_sources: List[OutSource]
     certainty: float
 
 @router.post("/fact_check/insta_post", response_model=OutFactChecking)
@@ -36,7 +41,9 @@ def check_insta_post(payload: InInstaPost):
 
 @router.post("/fact_check/text", response_model=OutFactChecking)
 def check_text(payload: InText):
-    return example_response()
+    res = fact_check(payload.query)
+    print(res)
+    return res
 
 def example_response():
     agree_source = OutSource(
