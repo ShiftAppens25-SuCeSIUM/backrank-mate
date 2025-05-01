@@ -28,6 +28,7 @@ determine the following:
 1. The overall truth of the query (e.g., "true", "false", "misleading", "innacuracy").
 2. The sources that agree with the query and their information.
 3. The sources that disagree with the query and their information.
+4. The certainty of the overall truth (0-1 scale).
 
 
 Use this JSON schema:

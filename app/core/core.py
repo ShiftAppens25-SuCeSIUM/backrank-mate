@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+
+load_dotenv()
 from .google_fact_check import get_reviews_text
 from .reviews_processing import process_reviews
 
