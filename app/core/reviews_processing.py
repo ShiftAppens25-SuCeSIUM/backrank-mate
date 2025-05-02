@@ -6,51 +6,53 @@ levaraging  the Google GenAI API.
 import json
 import os
 from typing import List
-
+import time
+from pathlib import Path
 from google import genai
 from google.genai.types import GenerateContentConfig, GoogleSearch, Tool
-
-from .google_fact_check import Review
 
 api_key = os.getenv("API_KEY")
 
 client = genai.Client(api_key=api_key)
 
+allowed_gemini_extensions = [".png", ".jpg", ".txt", ".mp4", ".pdf", ".mp3", ".mkv", ".wav"]
 
-def review_to_tuple(review: Review) -> tuple:
-    """Convert a Review object to a tuple for processing.
+
+def gemini_wait_until_active(client: genai.Client, name: str, timeout: int = 60):
+    """Waits until the Gemini file is in 'ACTIVE' state or timeout.
     Args:
-        review (Review): The Review object to convert.
-    Returns:
-        tuple: A tuple containing the review information.
+        client (genai.Client): The GenAI client instance.
+        name (str): The name of the file to check.
+        timeout (int): The maximum time to wait in seconds.
+    Raises:
+        TimeoutError: If the file does not become 'ACTIVE' within the timeout period.
     """
-    return (
-        review.rating,
-        review.reviewDate.isoformat() if review.reviewDate else None,
-        review.publisher.name,
-        review.publisher.site,
-        review.information_url,
-    )
+    start = time.time()
+    while time.time() - start < timeout:
+        file_info = client.files.get(name=name)
+        if file_info.state == "ACTIVE":
+            return file_info
+        time.sleep(1)
+    raise TimeoutError(f"File {name} did not become ACTIVE in time.")
 
 
-def process_reviews(query: str, reviews: List[Review]) -> dict:
-    """
-    Process reviews using Google GenAI API and generate a fact-checking report.
-    Args:
-        query (str): The query to be fact-checked.
-        reviews (List[Review]): A list of Review objects to be processed.
-    Returns:
-        dict: A dictionary containing the results of the fact check.
-    """
+
+def process_query(query: str, directory: str|None = None) -> dict:
     google_search_tool = Tool(google_search=GoogleSearch())
+    files = [
+            os.path.join(directory, f)
+            for f in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, f))
+        ] if directory else []
+    filtered_files = [f for f in files if Path(f).suffix in allowed_gemini_extensions]
+    uploaded_files = [client.files.upload(file=f) for f in filtered_files]
 
     prompt = f"""
-Given the query: {query}
+Given the query: {query} and if present the files uploaded
 
-and the reviews: [{','.join([str(review_to_tuple(i)) for i in reviews])}].\
-    If there are no reviews, search the web and find your sources, filling in the information.
+request the fact check api to search for similar claims as in the provided data
+in case one is found use its reviews otherwise search the web for your own reviews
 
-where each review is a tuple of (rating, reviewDate, publisher_name, publisher_site, information_url),
 determine the following:
 1. The overall truth of the query (e.g., "true", "false", "misleading", "innacuracy").
 2. The sources that agree with the query and their information, sorted by most recent.
@@ -59,16 +61,17 @@ determine the following:
 5. The query itself.
 
 
-Your answer must be a valid JSON string (no extra text), following this schema.
+Your answer must only be a valid JSON string
 Publisher = {{'name': str, 'site': str}}
 Source = {{'publisher': Publisher, 'information_url': str, 'review': str}}
 Return: {{"status": str, "agree_sources":\
     List[Source], "disagree_sources": List[Source], "certainty": float, "query": str}}
 """
-
+    for f in uploaded_files:
+        gemini_wait_until_active(client, f.name)
     response = client.models.generate_content(
         model="gemini-2.0-flash",
-        contents=prompt,
+        contents= uploaded_files + [prompt],
         config=GenerateContentConfig(
             tools=[google_search_tool],
             response_modalities=["TEXT"],

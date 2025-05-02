@@ -7,7 +7,7 @@ from typing import List
 import singlestoredb as s2
 from google import genai
 
-from app.core.core import fact_check
+from app.core.core import fact_check_text,fact_check_link
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
@@ -61,6 +61,52 @@ SELECT processed_output FROM embeddings WHERE (embedding <*> ((%s):>VECTOR(%s)))
         return result
 
 
+def find_link_match(link: str) -> str | None:
+    """Find the closest match in the database for the given embedding.
+    Args:
+        embedding (List[float]): The embedding vector to search for.
+    Returns:
+        List[str]: A list of matching processed outputs from the database.
+    """
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """
+SELECT processed_output,link FROM links WHERE link = %s;
+            """,
+            (link),
+        )
+        result = cursor.fetchone()
+        return result[0] if result else None
+
+
+
+def cached_fact_check_link(link: str) -> dict:
+    link_match = find_link_match(link)
+    if link_match:
+        print("Found a match in the database.")
+        with open("json.json", "w") as f:
+            json.dump(json.loads(link_match), f)
+        return json.loads(link_match)
+    fact_check_result = fact_check_link(link)
+    # If no match is found, store the query and its embedding in the database
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO links (link, processed_output)
+            VALUES (%s, %s);
+        """,
+            (
+                link,
+                json.dumps(fact_check_result),
+            ),
+        )
+    conn.commit()
+    return fact_check_result
+
+    
+    
+
+
 def cached_fact_check(query: str) -> dict:
     """Check the cache for a similar query and return the result if found.
     If not found, perform a fact check and store the result in the cache.
@@ -79,7 +125,7 @@ def cached_fact_check(query: str) -> dict:
         print("Found a match in the database.")
         return json.loads(result[0])
 
-    fact_check_result = fact_check(query)
+    fact_check_result = fact_check_text(query)
     # If no match is found, store the query and its embedding in the database
     with conn.cursor() as cur:
         cur.execute(
