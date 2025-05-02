@@ -1,12 +1,13 @@
+import os
+import re
 from enum import Enum
 from typing import Callable, List, Optional
-from fastapi import APIRouter
+
+from fastapi import APIRouter, File, Form, UploadFile
 from pydantic import BaseModel
+
 import app.core.preprocessing as pp
 from app.core.cache import cached_fact_check
-import re
-from fastapi import File, UploadFile, Form
-import os
 
 router = APIRouter()
 

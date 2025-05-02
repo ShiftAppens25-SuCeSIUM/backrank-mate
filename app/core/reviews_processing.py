@@ -1,8 +1,15 @@
+"""Process reviews using Google GenAI API.
+This module provides functionality to process reviews and generate a fact-checking report.
+levaraging  the Google GenAI API.
+"""
+
 import json
-from typing import List
-from google import genai
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 import os
+from typing import List
+
+from google import genai
+from google.genai.types import GenerateContentConfig, GoogleSearch, Tool
+
 from .google_fact_check import Review
 
 api_key = os.getenv("API_KEY")
@@ -11,6 +18,12 @@ client = genai.Client(api_key=api_key)
 
 
 def review_to_tuple(review: Review) -> tuple:
+    """Convert a Review object to a tuple for processing.
+    Args:
+        review (Review): The Review object to convert.
+    Returns:
+        tuple: A tuple containing the review information.
+    """
     return (
         review.rating,
         review.reviewDate.isoformat() if review.reviewDate else None,
@@ -20,13 +33,22 @@ def review_to_tuple(review: Review) -> tuple:
     )
 
 
-def process_reviews(query: str, reviews: List[Review]):
+def process_reviews(query: str, reviews: List[Review]) -> dict:
+    """
+    Process reviews using Google GenAI API and generate a fact-checking report.
+    Args:
+        query (str): The query to be fact-checked.
+        reviews (List[Review]): A list of Review objects to be processed.
+    Returns:
+        dict: A dictionary containing the results of the fact check.
+    """
     google_search_tool = Tool(google_search=GoogleSearch())
 
     prompt = f"""
 Given the query: {query}
 
-and the reviews: [{','.join([str(review_to_tuple(i)) for i in reviews])}]. If there are no reviews, search the web and find your sources, filling in the information.
+and the reviews: [{','.join([str(review_to_tuple(i)) for i in reviews])}].\
+    If there are no reviews, search the web and find your sources, filling in the information.
 
 where each review is a tuple of (rating, reviewDate, publisher_name, publisher_site, information_url),
 determine the following:
@@ -40,7 +62,8 @@ determine the following:
 Your answer must be a valid JSON string (no extra text), following this schema.
 Publisher = {{'name': str, 'site': str}}
 Source = {{'publisher': Publisher, 'information_url': str, 'review': str}}
-Return: {{"status": str, "agree_sources": List[Source], "disagree_sources": List[Source], "certainty": float, "query": str}}
+Return: {{"status": str, "agree_sources":\
+    List[Source], "disagree_sources": List[Source], "certainty": float, "query": str}}
 """
 
     response = client.models.generate_content(

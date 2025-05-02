@@ -1,3 +1,6 @@
+"""Fact-checking module for processing reviews using Google Fact Check API.
+This module provides functionality to perform a fact check on a given query"""
+
 from .google_fact_check import get_reviews_text
 from .reviews_processing import process_reviews
 
