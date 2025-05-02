@@ -7,7 +7,7 @@ from typing import List
 import singlestoredb as s2
 from google import genai
 
-from app.core.core import fact_check_text,fact_check_link
+from app.core.core import fact_check_text, fact_check_link
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
@@ -79,13 +79,18 @@ SELECT processed_output,link FROM links WHERE link = %s;
         return result[0] if result else None
 
 
-
 def cached_fact_check_link(link: str) -> dict:
+    """Check the cache for a similar query and return the result if found.
+    If not found, perform a fact check and store the result in the cache.
+    Args:
+        query (str): The query to be fact-checked.
+        request_id (str | None): Optional request ID for tracking.
+    Returns:
+        dict: A dictionary containing the results of the fact check.
+    """
     link_match = find_link_match(link)
     if link_match:
         print("Found a match in the database.")
-        with open("json.json", "w") as f:
-            json.dump(json.loads(link_match), f)
         return json.loads(link_match)
     fact_check_result = fact_check_link(link)
     # If no match is found, store the query and its embedding in the database
@@ -102,9 +107,6 @@ def cached_fact_check_link(link: str) -> dict:
         )
     conn.commit()
     return fact_check_result
-
-    
-    
 
 
 def cached_fact_check(query: str) -> dict:

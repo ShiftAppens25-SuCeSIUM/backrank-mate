@@ -8,7 +8,6 @@ The summarization is done using the Google GenAI API.
 import re
 import os
 import shutil
-import time
 from pathlib import Path
 from typing import List
 from uuid import uuid4
@@ -19,7 +18,6 @@ import requests
 import tweepy
 import yt_dlp
 from fastapi import UploadFile
-from google import genai
 from .reviews_processing import process_query
 
 
@@ -35,6 +33,13 @@ ms_token = os.getenv("MS_TOKEN", None)
 
 
 def create_directory(app_name: str, request_id: str) -> str:
+    """Creates a directory for storing files.
+    Args:
+        app_name (str): The name of the application.
+        request_id (str): The unique request ID.
+    Returns:
+        str: The path to the created directory.
+    """
     base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/{app_name}"
     directory = f"{base_dir}/{request_id}"
     os.makedirs(directory, exist_ok=True)
@@ -42,10 +47,19 @@ def create_directory(app_name: str, request_id: str) -> str:
 
 
 def delete_folder(directory: str):
+    """Deletes the specified directory and its contents.
+    Args:
+        directory (str): The path to the directory to be deleted.
+    """
     shutil.rmtree(directory)
 
 
-def download_insta_post(shortcode: str,directory: str):
+def download_insta_post(shortcode: str, directory: str):
+    """Downloads the Instagram post with the given shortcode.
+    Args:
+        shortcode (str): The shortcode of the Instagram post.
+        directory (str): The directory where the post will be downloaded.
+    """
     insta = instaloader.Instaloader()
     post = instaloader.Post.from_shortcode(insta.context, shortcode)
     insta.download_post(post, target=Path(directory))
@@ -79,9 +93,9 @@ def insta_post(url: str) -> str:
     shortcode = instagram_get_shortcode(url)
     directory = create_directory("insta", shortcode)
     try:
-        download_insta_post(shortcode,directory)
+        download_insta_post(shortcode, directory)
         return process_query(
-            f"Use the data in the files",
+            "Use the data in the files",
             directory,
         )
     finally:
@@ -110,7 +124,12 @@ def get_reddit_post_data(post_id: str) -> dict:
     return result
 
 
-def download_media_reddit(media: List[str],directory: str):
+def download_media_reddit(media: List[str], directory: str):
+    """Downloads the media files from the Reddit post.
+    Args:
+        media (List[str]): A list of media URLs to download.
+        directory (str): The directory where the media files will be downloaded.
+    """
     for i, url in enumerate(media):
         response = requests.get(url, timeout=1000)
         file_type = url.split(".")[-1]
@@ -119,7 +138,6 @@ def download_media_reddit(media: List[str],directory: str):
                 f.write(response.content)
         else:
             print(f"Failed to download {url}")
-
 
 
 def reddit_get_shortcode(url: str) -> str:
@@ -152,18 +170,18 @@ def reddit_post(url: str) -> dict:
     try:
         data = get_reddit_post_data(shortcode)
         if "media" in data:
-            download_media_reddit(data["media"],directory)
-        
+            download_media_reddit(data["media"], directory)
+
         return process_query(
-        f"Summarize this reddit post with the following data:\
-            title: {data['title']}, text: {data['text']}",directory)
+            f"Summarize this reddit post with the following data:\
+            title: {data['title']}, text: {data['text']}",
+            directory,
+        )
     finally:
         delete_folder(directory)
 
 
-
-
-def download_tiktok(url: str, post_id: str,directory: str):
+def download_tiktok(url: str, post_id: str, directory: str):
     """Downloads the TikTok post with the given URL and ID.
     Args:
         url (str): The TikTok post URL.
@@ -176,8 +194,6 @@ def download_tiktok(url: str, post_id: str,directory: str):
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
-
-
 
 
 def tiktok_get_shortcode(url: str) -> str:
@@ -203,7 +219,7 @@ def tiktok_get_shortcode(url: str) -> str:
         raise ValueError("Invalid TikTok URL format. Please provide a valid post URL.")
     raise ValueError("Invalid TikTok URL format. Please provide a valid post URL.")
 
-                
+
 def tiktok(url: str) -> str:
     """Downloads and summarizes the Instagram post with the given URL.
     Args:
@@ -216,16 +232,21 @@ def tiktok(url: str) -> str:
     shortcode = tiktok_get_shortcode(url)
     directory = create_directory("tiktok", shortcode)
     try:
-        download_tiktok(url,shortcode,directory)
+        download_tiktok(url, shortcode, directory)
         return process_query(
-            f"Use the data in the files",
+            "Use the data in the files",
             directory,
         )
     finally:
         delete_folder(directory)
 
 
-def download_youtube_short(url: str, post_id: str,directory: str):
+def download_youtube_short(url: str, post_id: str, directory: str):
+    """Downloads the YouTube Short with the given URL and ID.
+    Args:
+        url (str): The YouTube Short URL.
+        post_id (str): The ID of the YouTube Short.
+    """
     ydl_opts = {
         "outtmpl": f"{directory}/{post_id}.%(ext)s",
         "format": "best/video",
@@ -263,14 +284,13 @@ def youtube_short(url: str) -> str:
     post_id = youtube_short_get_shortcode(url)
     directory = create_directory("youtube_short", post_id)
     try:
-        download_youtube_short(url, post_id,directory)
+        download_youtube_short(url, post_id, directory)
         return process_query(
-            f"Use the data in the files",
+            "Use the data in the files",
             directory,
         )
     finally:
         delete_folder(directory)
-
 
 
 def random_url(url: str) -> str:
@@ -282,10 +302,7 @@ def random_url(url: str) -> str:
     """
     page = requests.get(url, timeout=1000)
     t = page.text
-    return process_query(
-        f"Summarize this page with the following data: {t}",
-        None
-    )
+    return process_query(f"Summarize this page with the following data: {t}", None)
 
 
 def x_get_shortcode(url: str) -> str:
@@ -318,7 +335,7 @@ def get_tweet(post_id: str) -> tweepy.Tweet:
     return tweet
 
 
-def download_x_post(directory: str,tweet: tweepy.Tweet = None):
+def download_x_post(directory: str, tweet: tweepy.Tweet = None):
     """Downloads the X post with the given ID.
     Args:
         post_id (str): The ID of the X post.
@@ -345,6 +362,7 @@ def download_x_post(directory: str,tweet: tweepy.Tweet = None):
             with open(f"{directory}/{i}.{file_type}", "wb") as f:
                 f.write(response.content)
 
+
 def x_post(url: str) -> str:
     """Downloads and summarizes the X post with the given URL.
     Args:
@@ -358,13 +376,18 @@ def x_post(url: str) -> str:
     directory = create_directory("x", post_id)
     t = get_tweet(post_id)
     try:
-        download_x_post(directory,t)
+        download_x_post(directory, t)
         return process_query(t.data.text, directory)
     finally:
         delete_folder(directory)
 
 
-def store_user_files(request_id: str, files: List[UploadFile],directory: str):
+def store_user_files(files: List[UploadFile], directory: str):
+    """Stores the user-uploaded files in the specified directory.
+    Args:
+        files (List[UploadFile]): A list of user-uploaded files.
+        directory (str): The directory where the files will be stored.
+    """
     for file in files:
         with open(f"{directory}/{file.filename}", "wb") as f:
             f.write(file.file.read())
@@ -382,7 +405,7 @@ def user_request_with_files(text: str, files: List[UploadFile]) -> str:
     request_id = str(uuid4())
     directory = create_directory("user_files", request_id)
     try:
-        store_user_files(request_id, files,directory)
+        store_user_files(files, directory)
         return process_query(
             text,
             directory,

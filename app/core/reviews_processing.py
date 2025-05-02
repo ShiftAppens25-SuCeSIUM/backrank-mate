@@ -5,7 +5,6 @@ levaraging  the Google GenAI API.
 
 import json
 import os
-from typing import List
 import time
 from pathlib import Path
 from google import genai
@@ -13,9 +12,16 @@ from google.genai.types import GenerateContentConfig, GoogleSearch, Tool
 
 api_key = os.getenv("API_KEY")
 
-client = genai.Client(api_key=api_key)
-
-allowed_gemini_extensions = [".png", ".jpg", ".txt", ".mp4", ".pdf", ".mp3", ".mkv", ".wav"]
+allowed_gemini_extensions = [
+    ".png",
+    ".jpg",
+    ".txt",
+    ".mp4",
+    ".pdf",
+    ".mp3",
+    ".mkv",
+    ".wav",
+]
 
 
 def gemini_wait_until_active(client: genai.Client, name: str, timeout: int = 60):
@@ -36,15 +42,27 @@ def gemini_wait_until_active(client: genai.Client, name: str, timeout: int = 60)
     raise TimeoutError(f"File {name} did not become ACTIVE in time.")
 
 
-
-def process_query(query: str, directory: str|None = None) -> dict:
+def process_query(query: str, directory: str | None = None) -> dict:
+    """
+    Process the query using Google GenAI API and generate a fact-checking report.
+    Args:
+        query (str): The query to be fact-checked.
+        directory (str | None): The directory containing files to be uploaded.
+    Returns:
+        dict: A dictionary containing the results of the fact check.
+    """
     google_search_tool = Tool(google_search=GoogleSearch())
-    files = [
+    files = (
+        [
             os.path.join(directory, f)
             for f in os.listdir(directory)
             if os.path.isfile(os.path.join(directory, f))
-        ] if directory else []
+        ]
+        if directory
+        else []
+    )
     filtered_files = [f for f in files if Path(f).suffix in allowed_gemini_extensions]
+    client = genai.Client(api_key=api_key)
     uploaded_files = [client.files.upload(file=f) for f in filtered_files]
 
     prompt = f"""
@@ -71,7 +89,7 @@ Return: {{"status": str, "agree_sources":\
         gemini_wait_until_active(client, f.name)
     response = client.models.generate_content(
         model="gemini-2.0-flash",
-        contents= uploaded_files + [prompt],
+        contents=uploaded_files + [prompt],
         config=GenerateContentConfig(
             tools=[google_search_tool],
             response_modalities=["TEXT"],

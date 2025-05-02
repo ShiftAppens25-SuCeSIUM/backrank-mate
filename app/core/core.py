@@ -2,10 +2,11 @@
 This module provides functionality to perform a fact check on a given query"""
 
 from typing import List
-from .reviews_processing import process_query
-import app.core.preprocessing as pp
 import re
 from fastapi import UploadFile
+import app.core.preprocessing as pp
+from .reviews_processing import process_query
+
 
 def fact_check_text(query: str) -> dict:
     """
@@ -19,7 +20,17 @@ def fact_check_text(query: str) -> dict:
     """
     return process_query(query)
 
+
 def fact_check_link(link: str) -> dict:
+    """
+    Perform a fact check on the given link using Google Fact Check API.
+    This function checks if the link is a social media link and processes it accordingly.
+    If the link is not a social media link, it processes it as a random URL.
+    Args:
+        link (str): The link to be fact-checked.
+    Returns:
+        dict: A dictionary containing the results of the fact check.
+    """
     social_media = [
         {"function": pp.youtube_short, "regex": r"youtube\.com/shorts/[^/?]+"},
         {"function": pp.insta_post, "regex": r"instagram\.com/p/[^/?]+"},
@@ -36,4 +47,13 @@ def fact_check_link(link: str) -> dict:
 
 
 def fact_check_files(text: str, files: List[UploadFile]) -> dict:
+    """
+    Perform a fact check on the given text and files using Google Fact Check API.
+    This function processes the text and files, and returns the results of the fact check.
+    Args:
+        text (str): The text to be fact-checked.
+        files (List[UploadFile]): A list of files to be fact-checked.
+    Returns:
+        dict: A dictionary containing the results of the fact check.
+    """
     return pp.user_request_with_files(text, files)

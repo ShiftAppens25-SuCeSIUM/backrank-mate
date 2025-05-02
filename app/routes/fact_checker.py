@@ -43,8 +43,6 @@ class OutFactChecking(BaseModel):
     query: str
 
 
-
-
 @router.post("/fact_check/link", response_model=OutFactChecking)
 def check_link(payload: InText):
     url = payload.query
