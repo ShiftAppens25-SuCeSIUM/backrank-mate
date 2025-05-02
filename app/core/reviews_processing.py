@@ -54,7 +54,6 @@ Return: {{"status": str, "agree_sources": List[Source], "disagree_sources": List
     t = response.text
     t = t.split("```json")[1]
     t = t.split("```")[0]
-    
     data = json.loads(t)
     return data
 

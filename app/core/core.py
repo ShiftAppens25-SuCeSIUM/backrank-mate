@@ -1,6 +1,3 @@
-from dotenv import load_dotenv
-
-load_dotenv()
 from .google_fact_check import get_reviews_text
 from .reviews_processing import process_reviews
 
@@ -17,3 +14,7 @@ def fact_check(query: str) -> dict:
     reviews = get_reviews_text(query)
     result = process_reviews(query, reviews)
     return result
+
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()

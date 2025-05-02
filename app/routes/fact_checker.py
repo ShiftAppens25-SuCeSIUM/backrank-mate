@@ -3,7 +3,7 @@ from typing import Callable, List, Optional
 from fastapi import APIRouter
 from pydantic import BaseModel
 import app.core.preprocessing as pp
-from app.core.core import fact_check
+from app.core.cache import cached_fact_check
 import re
 
 router = APIRouter()
@@ -40,6 +40,7 @@ def get_social_media(url: str) -> Optional[Callable[[str], OutFactChecking]]:
         {"function": pp.tiktok, "regex": r"tiktok\.com/@[^/]+/video/([^/?]+)"},
         {"function": pp.tiktok, "regex": r"vm\.tiktok\.com/([^/?]+)"},
         {"function": pp.reddit, "regex": r"reddit\.com/r/[^/]+/comments/([^/?]+)"},
+        {"function": pp.x_post, "regex": r"x\.com/.+/status/[^/?]+"}
     ]
 
     for sm in social_media:
@@ -52,10 +53,10 @@ def check_link(payload: InText):
     fn = get_social_media(url)
 
     if fn is None:
-        fact_check(pp.random_url(url))
+        cached_fact_check(pp.random_url(url))
 
-    return fact_check(fn(url))
+    return cached_fact_check(fn(url))
 
 @router.post("/fact_check/text", response_model=OutFactChecking)
 def check_text(payload: InText):
-    return fact_check(payload.query)
+    return cached_fact_check(payload.query)

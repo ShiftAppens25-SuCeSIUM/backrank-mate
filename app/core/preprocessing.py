@@ -1,6 +1,8 @@
 import asyncio
 import os
 from typing import List
+
+from bs4 import BeautifulSoup
 import instaloader
 import os
 from pathlib import Path
@@ -11,6 +13,7 @@ import tweepy
 import praw
 import requests
 import yt_dlp
+import json
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
@@ -381,3 +384,80 @@ def random_url(url: str) -> str:
     page = requests.get(url)
     t = page.text
     return summarize_random_page(t)
+
+def x_get_shortcode(url: str) -> str:
+    pattern = r"x\.com/.+/status/([^/?]+)"
+    match = re.search(pattern, url)
+    if match:
+        return match.group(1)
+    else:
+        raise ValueError("Invalid X URL format. Please provide a valid post URL.")
+
+def download_x_post(post_id: str):
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/x"
+    directory = f"{base_dir}/{post_id}"
+    os.makedirs(directory, exist_ok=True)
+
+    client = tweepy.Client(bearer_token=os.getenv("X_BEARER_TOKEN"))
+    tweet = client.get_tweet(post_id, tweet_fields=["text", "attachments"])
+    if tweet.data and tweet.data.attachments:
+        media_keys = tweet.data.attachments.get("media_keys", [])
+        media = client.get_tweet(post_id, expansions="attachments.media_keys", media_fields=["url"]).includes.get("media", [])
+        for i, m in enumerate(media.includes["media"]):
+            if m.type == "photo":
+                url = m.url
+                response = requests.get(url)
+                file_type = url.split(".")[-1]
+                with open(f"{directory}/{i}.{file_type}", "wb") as f:
+                    f.write(response.content)
+            elif m.type == "video":
+                url = m.url
+                response = requests.get(url)
+                file_type = url.split(".")[-1]
+                with open(f"{directory}/{i}.{file_type}", "wb") as f:
+                    f.write(response.content)
+            elif m.type == "animated_gif":
+                url = m.url
+                response = requests.get(url)
+                file_type = url.split(".")[-1]
+                with open(f"{directory}/{i}.{file_type}", "wb") as f:
+                    f.write(response.content)
+
+def summarize_x_post(post_id: str) -> str:
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/x"
+    directory = f"{base_dir}/{post_id}"
+
+    with open(f"{directory}/post.json", "r") as f:
+        post_data = json.load(f)
+
+    client = genai.Client(api_key=os.getenv("API_KEY"))
+    content = [
+        post_data.get("text", ""),
+        """
+        Summarize this X post.
+        Use this text schema.
+
+        Return, in plain text, the main statements or insinuations the post makes.
+        """
+    ]
+
+    response = client.models.generate_content(
+        model="gemini-2.0-flash", contents=content
+    )
+
+    return response.text
+
+def delete_x_post(post_id: str):
+    base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/x"
+    directory = f"{base_dir}/{post_id}"
+    shutil.rmtree(directory)
+
+def x_post(url: str) -> str:
+    post_id = x_get_shortcode(url)
+    try:
+        download_x_post(post_id)
+        return summarize_x_post(post_id)
+    finally:
+        delete_x_post(post_id)
+
+
