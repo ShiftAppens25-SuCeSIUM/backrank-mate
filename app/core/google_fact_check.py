@@ -54,7 +54,6 @@ class Claim(CustomBaseModel):
     claimReview: List[ClaimReview]
 
 
-
 class Review(CustomBaseModel):
     """Review information."""
 
@@ -62,7 +61,6 @@ class Review(CustomBaseModel):
     reviewDate: datetime | None = None
     publisher: Publisher
     information_url: str | None = None
-
 
 
 def get_claims(query: str) -> Claim:

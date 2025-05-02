@@ -1,89 +1,85 @@
 {
-	"info": {
-		"_postman_id": "fd4d9f5f-76e3-4d1e-b9cf-7c22b7bcca0a",
-		"name": "BackrankMate",
-		"description": "Postman collection for FastAPI demo project",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "32164757",
-		"_collection_link": "https://grey-meadow-590859.postman.co/workspace/My-Workspace~970f3e84-a260-4857-8a94-e980218508f0/collection/32164757-fd4d9f5f-76e3-4d1e-b9cf-7c22b7bcca0a?action=share&source=collection_link&creator=32164757"
-	},
-	"item": [
-		{
-			"name": "GET /",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:8000/",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8000",
-					"path": [
-						""
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Link",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"shortcode\": \"DItmpGKp6Go\"\n}"
-				},
-				"url": {
-					"raw": "http://localhost:8000/fact_check/insta_post",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8000",
-					"path": [
-						"fact_check",
-						"insta_post"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Text",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"query\": \"Senna died in 1994\"\n}"
-				},
-				"url": {
-					"raw": "http://localhost:8000/fact_check/text",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8000",
-					"path": [
-						"fact_check",
-						"text"
-					]
-				}
-			},
-			"response": []
-		}
-	]
-}
+    "info": {
+      "name": "FactCheck API",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "_postman_id": "e42e1dbb-68e5-4c11-9f12-df601a550b7a"
+    },
+    "item": [
+      {
+        "name": "Check Link",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"query\": \"https://www.youtube.com/shorts/abc123xyz\"\n}"
+          },
+          "url": {
+            "raw": "http://localhost:8000/fact_check/link",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "8000",
+            "path": ["fact_check", "link"]
+          }
+        }
+      },
+      {
+        "name": "Check Text",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"query\": \"COVID-19 vaccines cause infertility.\"\n}"
+          },
+          "url": {
+            "raw": "http://localhost:8000/fact_check/text",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "8000",
+            "path": ["fact_check", "text"]
+          }
+        }
+      },
+      {
+        "name": "Check File",
+        "request": {
+          "method": "POST",
+          "header": [],
+          "body": {
+            "mode": "formdata",
+            "formdata": [
+              {
+                "key": "query",
+                "value": "This PDF claims the earth is flat.",
+                "type": "text"
+              },
+              {
+                "key": "files",
+                "type": "file",
+                "src": "/absolute/path/to/sample.pdf"
+              }
+            ]
+          },
+          "url": {
+            "raw": "http://localhost:8000/fact_check/file",
+            "protocol": "http",
+            "host": ["localhost"],
+            "port": "8000",
+            "path": ["fact_check", "file"]
+          }
+        }
+      }
+    ]
+  }
+  

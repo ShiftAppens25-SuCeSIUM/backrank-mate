@@ -8,19 +8,20 @@ The application is designed to be run with Uvicorn or another ASGI server.
 """
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.routes import fact_checker
 from config.config import settings
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust this to restrict origins
+    allow_origins=["*"],  # Adjust this to restrict origins, development only
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
