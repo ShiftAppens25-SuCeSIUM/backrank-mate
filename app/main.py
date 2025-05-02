@@ -13,8 +13,18 @@ load_dotenv()
 from fastapi import FastAPI
 from app.routes import fact_checker
 from config.config import settings
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title=settings.APP_NAME, debug=settings.DEBUG)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust this to restrict origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(fact_checker.router)
 
