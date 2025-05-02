@@ -34,8 +34,8 @@ def get_embedding(text : str) -> List[float]:
 def find_closest_match(embedding:List[float],threshold : float =0.05) -> List[str]:
     with conn.cursor() as cursor:
         cursor.execute("""
-SELECT processed_output FROM embeddings WHERE embedding <*> ((%s):>VECTOR(%s)) < %s LIMIT 1;
-            """, (json.dumps(embedding), len(embedding), float(threshold)))
+SELECT processed_output FROM embeddings WHERE (embedding <*> ((%s):>VECTOR(%s))) > 0.95 LIMIT 1;
+            """, (json.dumps(embedding), len(embedding)))
         result = cursor.fetchone()
         return result
 
@@ -47,6 +47,7 @@ def cached_fact_check(query:str) -> dict:
     # Find the closest match in the database
     result = find_closest_match(embedding)
     if result:
+        print("Found a match in the database.")
         return json.loads(result[0])
     else:
         fact_check_result = fact_check(query)

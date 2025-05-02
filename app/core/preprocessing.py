@@ -393,58 +393,68 @@ def x_get_shortcode(url: str) -> str:
     else:
         raise ValueError("Invalid X URL format. Please provide a valid post URL.")
 
-def download_x_post(post_id: str):
+
+def get_tweet(post_id: str) -> tweepy.Tweet:
+    client = tweepy.Client(bearer_token=os.getenv("X_BEARER_TOKEN"))
+    tweet = client.get_tweet(id=post_id, expansions=["attachments.media_keys"], media_fields=["url"])
+    return tweet
+
+def download_x_post(post_id: str,tweet: tweepy.Tweet = None):
     base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/x"
     directory = f"{base_dir}/{post_id}"
     os.makedirs(directory, exist_ok=True)
+    
 
-    client = tweepy.Client(bearer_token=os.getenv("X_BEARER_TOKEN"))
-    tweet = client.get_tweet(post_id, tweet_fields=["text", "attachments"])
-    if tweet.data and tweet.data.attachments:
-        media_keys = tweet.data.attachments.get("media_keys", [])
-        media = client.get_tweet(post_id, expansions="attachments.media_keys", media_fields=["url"]).includes.get("media", [])
-        for i, m in enumerate(media.includes["media"]):
-            if m.type == "photo":
-                url = m.url
-                response = requests.get(url)
-                file_type = url.split(".")[-1]
-                with open(f"{directory}/{i}.{file_type}", "wb") as f:
-                    f.write(response.content)
-            elif m.type == "video":
-                url = m.url
-                response = requests.get(url)
-                file_type = url.split(".")[-1]
-                with open(f"{directory}/{i}.{file_type}", "wb") as f:
-                    f.write(response.content)
-            elif m.type == "animated_gif":
-                url = m.url
-                response = requests.get(url)
-                file_type = url.split(".")[-1]
-                with open(f"{directory}/{i}.{file_type}", "wb") as f:
-                    f.write(response.content)
+    media = tweet.includes['media']
+    for i, m in enumerate(media):
+        if m.type == "photo":
+            url = m.url
+            response = requests.get(url)
+            file_type = url.split(".")[-1]
+            with open(f"{directory}/{i}.{file_type}", "wb") as f:
+                f.write(response.content)
+        elif m.type == "video":
+            url = m.url
+            response = requests.get(url)
+            file_type = url.split(".")[-1]
+            with open(f"{directory}/{i}.{file_type}", "wb") as f:
+                f.write(response.content)
+        elif m.type == "animated_gif":
+            url = m.url
+            response = requests.get(url)
+            file_type = url.split(".")[-1]
+            with open(f"{directory}/{i}.{file_type}", "wb") as f:
+                f.write(response.content)
 
-def summarize_x_post(post_id: str) -> str:
+def summarize_x_post(post_id: str,tweet: tweepy.Tweet) -> str:
     base_dir = f"{os.getenv('TEMPORARY_DIRECTORY')}/x"
     directory = f"{base_dir}/{post_id}"
+    
+    files = [
+        os.path.join(directory, f) for f in os.listdir(directory)
+        if os.path.isfile(os.path.join(directory, f))
+    ]
 
-    with open(f"{directory}/post.json", "r") as f:
-        post_data = json.load(f)
-
+    filtered_files = [
+        f for f in files
+        if Path(f).suffix in allowed_gemini_extensions
+    ]
+    
     client = genai.Client(api_key=os.getenv("API_KEY"))
-    content = [
-        post_data.get("text", ""),
-        """
-        Summarize this X post.
+    
+    uploaded_files = [client.files.upload(file=f) for f in filtered_files]
+    content = uploaded_files + [
+        f"""
+        Summarize this X tweet where the post text was {tweet.data.text}.
         Use this text schema.
 
-        Return, in plain text, the main statements or insinuations the post makes.
+        Return, in plain text, the main statements or insinuations the video makes.
         """
     ]
 
     response = client.models.generate_content(
         model="gemini-2.0-flash", contents=content
     )
-
     return response.text
 
 def delete_x_post(post_id: str):
@@ -454,9 +464,10 @@ def delete_x_post(post_id: str):
 
 def x_post(url: str) -> str:
     post_id = x_get_shortcode(url)
+    t = get_tweet(post_id)
     try:
-        download_x_post(post_id)
-        return summarize_x_post(post_id)
+        download_x_post(post_id,t)
+        return summarize_x_post(post_id,t)
     finally:
         delete_x_post(post_id)
 
