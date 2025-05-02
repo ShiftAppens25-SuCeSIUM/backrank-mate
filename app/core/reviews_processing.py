@@ -3,7 +3,8 @@ from typing import List
 from google import genai
 from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
 import os
-from .google_fact_check import Review 
+from .google_fact_check import Review
+
 api_key = os.getenv("API_KEY")
 
 client = genai.Client(api_key=api_key)
@@ -15,13 +16,12 @@ def review_to_tuple(review: Review) -> tuple:
         review.reviewDate.isoformat() if review.reviewDate else None,
         review.publisher.name,
         review.publisher.site,
-        review.information_url
+        review.information_url,
     )
 
-def process_reviews(query : str,reviews: List[Review]): 
-    google_search_tool = Tool(
-        google_search = GoogleSearch()
-    )
+
+def process_reviews(query: str, reviews: List[Review]):
+    google_search_tool = Tool(google_search=GoogleSearch())
 
     prompt = f"""
 Given the query: {query}
@@ -49,11 +49,10 @@ Return: {{"status": str, "agree_sources": List[Source], "disagree_sources": List
         config=GenerateContentConfig(
             tools=[google_search_tool],
             response_modalities=["TEXT"],
-        )
+        ),
     )
     t = response.text
     t = t.split("```json")[1]
     t = t.split("```")[0]
     data = json.loads(t)
     return data
-

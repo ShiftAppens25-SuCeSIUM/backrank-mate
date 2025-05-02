@@ -4,8 +4,10 @@ import singlestoredb as s2
 from google import genai
 from app.core.core import fact_check
 import os
+
 if __name__ == "__main__":
     from dotenv import load_dotenv
+
     load_dotenv()
 
 api_key = os.getenv("API_KEY")
@@ -17,30 +19,33 @@ db_password = os.getenv("DB_PASSWORD")
 db_database = os.getenv("DB_DATABASE")
 
 
-
 # Create a connection to the database
-conn = s2.connect(host=db_host, port=db_port, user=db_user,
-                  password=db_password, database=db_database)
+conn = s2.connect(
+    host=db_host, port=db_port, user=db_user, password=db_password, database=db_database
+)
 
 
-def get_embedding(text : str) -> List[float]: 
+def get_embedding(text: str) -> List[float]:
     client = genai.Client(api_key=api_key)
     result = client.models.embed_content(
-            model="gemini-embedding-exp-03-07",
-            contents=text)
+        model="gemini-embedding-exp-03-07", contents=text
+    )
     return result.embeddings[0].values
 
 
-def find_closest_match(embedding:List[float],threshold : float =0.05) -> List[str]:
+def find_closest_match(embedding: List[float], threshold: float = 0.05) -> List[str]:
     with conn.cursor() as cursor:
-        cursor.execute("""
+        cursor.execute(
+            """
 SELECT processed_output FROM embeddings WHERE (embedding <*> ((%s):>VECTOR(%s))) > 0.95 LIMIT 1;
-            """, (json.dumps(embedding), len(embedding)))
+            """,
+            (json.dumps(embedding), len(embedding)),
+        )
         result = cursor.fetchone()
         return result
 
 
-def cached_fact_check(query:str) -> dict:
+def cached_fact_check(query: str, request_id: str | None = None) -> dict:
     # Get the embedding for the query
     embedding = get_embedding(query)
 
@@ -53,9 +58,17 @@ def cached_fact_check(query:str) -> dict:
         fact_check_result = fact_check(query)
         # If no match is found, store the query and its embedding in the database
         with conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO embeddings (original_text, embedding, processed_output)
                 VALUES (%s, (%s:>VECTOR(%s)), %s);
-            """, (query, json.dumps(embedding), len(embedding), json.dumps(fact_check_result)))
+            """,
+                (
+                    query,
+                    json.dumps(embedding),
+                    len(embedding),
+                    json.dumps(fact_check_result),
+                ),
+            )
         conn.commit()
         return fact_check_result
