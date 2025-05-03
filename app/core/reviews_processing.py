@@ -24,6 +24,15 @@ allowed_gemini_extensions = [
 ]
 
 
+class GeminiBogusError(Exception):
+    """Custom exception for handling errors related to Gemini API."""
+
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
+
+
+
 def gemini_wait_until_active(client: genai.Client, name: str, timeout: int = 60):
     """Waits until the Gemini file is in 'ACTIVE' state or timeout.
     Args:
@@ -96,7 +105,12 @@ Return: {{"status": str, "agree_sources":\
         ),
     )
     t = response.text
-    t = t.split("```json")[1]
-    t = t.split("```")[0]
-    data = json.loads(t)
-    return data
+    try:
+        t = t.split("```json")[1]
+        t = t.split("```")[0]
+        data = json.loads(t)
+        return data
+    except Exception as e:
+        raise GeminiBogusError(
+            f"Gemini API cannot process the request, please try again later."
+        )
