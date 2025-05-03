@@ -18,7 +18,7 @@ docker build -t backrank-mate .
 docker run -p 8000:8000 backrank-mate
 ```
 
-3. You can now access the API in `http://127.0.0.1:8000`.
+3. You can now access the API in `http://localhost:8000`.
 
 ### Python
 
@@ -41,7 +41,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-4. You can now access the API in `http://127.0.0.1:8000`.
+4. You can now access the API in `http://localhost:8000`.
 
 ## Using the API
 
